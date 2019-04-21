@@ -26,8 +26,6 @@ async function loadCurrency() {
   return {hours,realtemps,felttepms};
 }
 
-
-
 const buttonBuild = document.getElementById("btn");
 const canvasCtx = document.getElementById("out").getContext("2d");
 
@@ -35,7 +33,6 @@ buttonBuild.addEventListener("click", async function() {
   const currencyData = await loadCurrency();
   const chartConfig = {
     type: "line",
-
     data: {
       labels: currencyData["hours"],
       datasets: [
@@ -85,9 +82,3 @@ buttonBuild.addEventListener("click", async function() {
     window.chart = new Chart(canvasCtx, chartConfig);
   }
 });
-
-function compare(a, b) {
-  if (a > b) return 1;
-  if (a < b) return -1;
-  return 0;
-}
