@@ -1,61 +1,77 @@
 import "babel-polyfill";
 import Chart from "chart.js";
 
-const currencyURL = "www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
-// const meteoURL = "/xml.meteoservice.ru/export/gismeteo/point/140.xml";
+const meteoURL = "/xml.meteoservice.ru/export/gismeteo/point/140.xml";
 
 async function loadCurrency() {
-  const response = await fetch(currencyURL);
+  const response = await fetch(meteoURL);
   const xmlTest = await response.text();
   const parser = new DOMParser();
   const currencyData = parser.parseFromString(xmlTest, "text/xml");
-  // <Cube currency="USD" rate="1.1321" />
-  const rates = currencyData.querySelectorAll("Cube[currency][rate]");
-  const result = Object.create(null);
-  for (let i = 0; i < rates.length; i++) {
-    const rateTag = rates.item(i);
-    const rate = rateTag.getAttribute("rate");
-    const currency = rateTag.getAttribute("currency");
-    result[currency] = rate;
+
+
+  const Time = currencyData.getElementsByTagName("FORECAST");
+  const realTemp = currencyData.getElementsByTagName("TEMPERATURE");
+  const feltTemp = currencyData.getElementsByTagName("HEAT");  
+
+  const hours = new Array();
+  const realtemps = new Array();
+  const felttepms = new Array();  
+
+  for (let i = 0; i < Time.length; i++) {
+     hours.push(Time[i].getAttribute("hour") + ":00");
+     realtemps.push(realTemp[i].getAttribute("max"));
+     felttepms.push(feltTemp[i].getAttribute("max"));
   }
-  result["EUR"] = 1;
-  // result["RANDOM"] = 1 + Math.random();
-  return result;
+  return {hours,realtemps,felttepms};
 }
 
-function normalizeDataByCurrency(data, currency) {
-  const result = Object.create(null);
-  const value = data[currency];
-  for (const key of Object.keys(data)) {
-    result[key] = value / data[key];
-  }
-  return result;
-}
+
 
 const buttonBuild = document.getElementById("btn");
 const canvasCtx = document.getElementById("out").getContext("2d");
+
 buttonBuild.addEventListener("click", async function() {
   const currencyData = await loadCurrency();
-  const normalData = normalizeDataByCurrency(currencyData, "RUB");
-  const keys = Object.keys(normalData).sort((k1, k2) =>
-    compare(normalData[k1], normalData[k2])
-  );
-  const plotData = keys.map(key => normalData[key]);
-
   const chartConfig = {
     type: "line",
 
     data: {
-      labels: keys,
+      labels: currencyData["hours"],
       datasets: [
         {
-          label: "Стоимость валюты в рублях",
-          backgroundColor: "rgb(255, 20, 20)",
+          label: "Реальная температура",
+          backgroundColor: "rgba(255, 20, 20, 0.3)",
           borderColor: "rgb(180, 0, 0)",
-          data: plotData
+          data: currencyData["realtemps"]
+        },
+        {
+          label: "Ощущаемая температура",
+          backgroundColor: "rgba(100, 20, 20, 0.3)",
+          borderColor: "rgb(100, 100, 0)",
+          data: currencyData["felttepms"]
         }
-      ]
-    }
+      ],
+    },  
+    options: {
+      scales: {
+        xAxes: [{
+          display: true,
+          scaleLabel: {
+            display: true,
+            labelString: 'Время',
+          }
+        }],
+        yAxes: [{
+          display: true,
+          scaleLabel: {
+            display: true,
+            labelString: 'Температура, ℃'
+          }
+        }]
+      }
+    },
+
   };
 
   if (window.chart) {
